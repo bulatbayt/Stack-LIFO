@@ -46,7 +46,7 @@ struct stack_t
     const char* func;   //  функция создания
 #endif
 
-    stack_elem_t* data;        // сырой буфер: [канарейка][данные][канарейка]
+    stack_elem_t* data;        // сырой стэк: [канарейка][данные][канарейка]
     stack_elem_t* info_data;   // данные (указатель в середину data)
     size_t        size;
     size_t        capacity;
