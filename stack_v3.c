@@ -1,6 +1,10 @@
 #include "stack_v3.h"
 
 
+void PrintfErr (int err, struct stack_t* stk);
+void PrintfStackElem ( struct stack_t* stk);
+void PrintfCanary (struct stack_t* stk);
+
 int main()
 {
     struct stack_t stk1 = {};
@@ -16,13 +20,11 @@ int main()
     STACK_DUMP (&stk1, err);
 
     StackPush (&stk1, 30, &err);
-   STACK_DUMP (&stk1, err);
+    STACK_DUMP (&stk1, err);
 
     StackPush (&stk1, 40, &err);
  
-
-    StackPush (&stk1, 50, &err);
-    
+    StackPush (&stk1, 50, &err);   
 
     StackPush (&stk1, 60, &err);
 
@@ -85,7 +87,6 @@ void StackInit(struct stack_t* stk, size_t capacity, int* err, ...)
         return;
     }
 
-    // [канарейка][capacity данных][канарейка]
     stk->data = malloc((capacity + 2) * sizeof(stack_elem_t));
 
     if (stk->data == NULL)
@@ -121,7 +122,7 @@ int StackVerify(struct stack_t* stk)
 
     int err = STACK_OK;
 
-    if (stk->capacity == 0)
+    if (stk->capacity == 0) // нужно исправить |=
         err |= STACK_BAD_CAPACITY;
 
     if (stk->size > stk->capacity)
@@ -135,7 +136,7 @@ int StackVerify(struct stack_t* stk)
         stack_elem_t left  = stk->data[0];
         stack_elem_t right = stk->data[stk->capacity + 1];
 
-        if (left  != CANARY_VALUE) err |= STACK_LEFT_CANARY;
+        if (left  != CANARY_VALUE) err |= STACK_LEFT_CANARY; // нужно исправить |=
         if (right != CANARY_VALUE) err |= STACK_RIGHT_CANARY;
     }
 
@@ -143,10 +144,11 @@ int StackVerify(struct stack_t* stk)
 }
 
 // ---------- Dump ----------
-void StackDump(struct stack_t* stk, int err
+void StackDump (struct stack_t* stk, int err
                ON_DBG(, const char* file, int line, const char* func))
+
 {
-    printf("\n========== STACK DUMP ==========\n");
+    printf ("\n========== STACK DUMP ==========\n");
 
 #ifdef ONDEBUG
     printf("Created by  <%s> in Line <%d>   in <%s> func\n", file, line, func);
@@ -154,78 +156,36 @@ void StackDump(struct stack_t* stk, int err
 
     if (stk == NULL)
     {
-        printf("stk == NULL\n");
-        printf("================================\n\n");
+        printf ("stk == NULL\n");
+        printf ("================================\n\n");
         return;
     }
 
 #ifdef ONDEBUG
     if (stk->name == NULL)
-        printf("name       = <unnamed>\n");
+        printf ("name       = <unnamed>\n");
     else
-        printf("name       = %s\n", stk->name);
+        printf ("name       = %s\n", stk->name);
 #endif
 
-    printf("stk        = %p\n", (void*)stk);
-    printf("data       = %p\n", (void*)stk->data);
-    printf("info_data  = %p\n", (void*)stk->info_data);
-    printf("size       = %zu\n", stk->size);
-    printf("capacity   = %zu\n", stk->capacity);
+    printf ("stk        = %p\n", (void*)stk);
+    printf ("data       = %p\n", (void*)stk->data);
+    printf ("info_data  = %p\n", (void*)stk->info_data);
+    printf ("size       = %zu\n", stk->size);
+    printf ("capacity   = %zu\n", stk->capacity);
 
-    if (stk->data != NULL)
-    {
-        stack_elem_t left  = stk->data[0];
-        stack_elem_t right = stk->data[stk->capacity + 1];
+    PrintfCanary (stk);
 
-        printf("left  canary = " STACK_ELEM " %s\n", left,
-               left  == CANARY_VALUE ? "(OK)" : "(CORRUPTED!)");
-        printf("right canary = " STACK_ELEM " %s\n", right,
-               right == CANARY_VALUE ? "(OK)" : "(CORRUPTED!)");
-    }
+    PrintfStackElem (stk);
 
-    if (stk->data != NULL && stk->info_data != NULL)
-    {
-        for (size_t i = 0; i < stk->capacity; ++i)
-        {
-            if (i >= stk->size)
-                printf("[%zu] = " STACK_ELEM "%s\n", i, stk->info_data[i],
-                       isnan(stk->info_data[i]) ? "  <!poison!>"
-                                                 : "  <!NO POISON!>");
-            else
-                printf("[%zu] = " STACK_ELEM "\n", i, stk->info_data[i]);
-        }
-    }
-    else
-    {
-        printf("  <data is NULL>\n");
-    }
-
-    int verify = StackVerify(stk);
-    printf("Verify err = %d ", verify);
-
-    if (verify == STACK_OK) printf("(OK)\n");
-    else
-    {
-        if (verify & STACK_NULL_PTR)     printf("NULL_PTR ");
-        if (verify & STACK_MEMORY_ERROR) printf("MEMORY ");
-        if (verify & STACK_UNDERFLOW)    printf("UNDERFLOW ");
-        if (verify & STACK_OVERFLOW)     printf("OVERFLOW ");
-        if (verify & STACK_BAD_CAPACITY) printf("BAD_CAPACITY ");
-        if (verify & STACK_LEFT_CANARY)  printf("LEFT_CANARY ");
-        if (verify & STACK_RIGHT_CANARY) printf("RIGHT_CANARY ");
-        if (verify & STACK_DATA_NULL)    printf("DATA_NULL ");
-        printf("\n");
-    }
-
-    printf("Passed err = %d\n", err);
-    printf("================================\n\n");
+    PrintfErr (err, stk);
 }
 
 // ---------- Resize ----------
-void StackResize(struct stack_t* stk, size_t new_capacity, int* err)
+void StackResize (struct stack_t* stk, size_t new_capacity, int* err)
 {
-    assert(stk != NULL);
-    assert(err != NULL);
+    assert (stk != NULL);
+    assert (err != NULL);
 
     if (new_capacity == 0)
     {
@@ -234,7 +194,7 @@ void StackResize(struct stack_t* stk, size_t new_capacity, int* err)
     }
 
     size_t bytes = (new_capacity + 2) * sizeof(stack_elem_t);
-    stack_elem_t* new_data = realloc(stk->data, bytes);
+    stack_elem_t* new_data = realloc (stk->data, bytes);
     if (new_data == NULL)
     {
         *err = STACK_MEMORY_ERROR;
@@ -247,7 +207,7 @@ void StackResize(struct stack_t* stk, size_t new_capacity, int* err)
     // Левая канарейка — на месте
     stk->data[0] = CANARY_VALUE;
 
-    // Правая — на новом месте
+    // новое место для правой канарейки
     stk->data[new_capacity + 1] = CANARY_VALUE;
 
     if (new_capacity > stk->capacity)
@@ -261,14 +221,14 @@ void StackResize(struct stack_t* stk, size_t new_capacity, int* err)
 }
 
 // ---------- Push ----------
-void StackPush(struct stack_t* stk, stack_elem_t value, int* err)
+void StackPush (struct stack_t* stk, stack_elem_t value, int* err)
 {
-    assert(stk != NULL);
-    assert(err != NULL);
+    assert (stk != NULL);
+    assert (err != NULL);
 
     if (stk->size == stk->capacity)
     {
-        StackResize(stk, stk->capacity * 2, err);
+        StackResize (stk, stk->capacity * 2, err);
 
         if (*err != STACK_OK)
             return;
@@ -279,10 +239,10 @@ void StackPush(struct stack_t* stk, stack_elem_t value, int* err)
 }
 
 // ---------- Pop ----------
-stack_elem_t StackPop(struct stack_t* stk, int* err)
+stack_elem_t StackPop (struct stack_t* stk, int* err)
 {
-    assert(stk != NULL);
-    assert(err != NULL);
+    assert (stk != NULL);
+    assert (err != NULL);
 
     if (stk->size == 0)
     {
@@ -297,6 +257,7 @@ stack_elem_t StackPop(struct stack_t* stk, int* err)
     if (stk->capacity > 4 && stk->size * 2 <= stk->capacity)
     {
         StackResize(stk, stk->capacity / 2, err);
+
         if (*err != STACK_OK)
             return value;
     }
@@ -306,12 +267,12 @@ stack_elem_t StackPop(struct stack_t* stk, int* err)
 }
 
 // ---------- Destroy ----------
-void StackDestroy(struct stack_t* stk)
+void StackDestroy (struct stack_t* stk)
 {
     if (stk == NULL)
         return;
 
-    free(stk->data);
+    free (stk->data);
     stk->data      = NULL;
     stk->info_data = NULL;
     stk->size      = 0;
@@ -323,4 +284,109 @@ void StackDestroy(struct stack_t* stk)
     stk->line = 0;
     stk->func = NULL;
 #endif
+}
+
+void PrintfErr (int err, struct stack_t* stk)
+{
+    int verify = StackVerify(stk); // НОВУЮ ФУНКЦИЮ для вывода ошибок (-30 строк кода)
+    printf ("Verify err = %d ", verify);
+
+    if (verify == STACK_OK) 
+    {
+        printf("(OK)\n");
+    }
+    
+    else
+    {
+        if (verify & STACK_NULL_PTR)     
+            printf ("NULL_PTR ");
+
+        if (verify & STACK_MEMORY_ERROR) 
+            printf ("MEMORY ");
+
+        if (verify & STACK_UNDERFLOW)    
+            printf ("UNDERFLOW ");
+
+        if (verify & STACK_OVERFLOW)     
+            printf ("OVERFLOW ");
+
+        if (verify & STACK_BAD_CAPACITY) 
+            printf ("BAD_CAPACITY ");
+
+        if (verify & STACK_LEFT_CANARY)  
+            printf ("LEFT_CANARY ");
+
+        if (verify & STACK_RIGHT_CANARY) 
+            printf ("RIGHT_CANARY ");
+
+        if (verify & STACK_DATA_NULL)    
+            printf ("DATA_NULL ");
+
+        printf("\n");
+    }
+
+    if (err == 0)
+        printf ("Passed err = %d (%s)\n", err, "OK");
+    
+    else
+        printf ("Passed err = %d \n", err);
+    
+    printf ("================================\n\n");
+}
+
+void PrintfStackElem ( struct stack_t* stk)
+{
+    if (stk->data != NULL && stk->info_data != NULL)
+    {
+        for (size_t i = 0; i < stk->capacity; ++i)
+        {
+            if (i >= stk->size)
+            {
+                if ( isnan(stk->info_data[i]) != 0 )
+                {
+                    printf ("[%zu] = " STACK_ELEM "%s\n", i, stk->info_data[i]," <!poison!>");
+                }
+                else
+                {
+                    printf ("[%zu] = " STACK_ELEM "%s\n", i, stk->info_data[i]," <!NO poison!>");
+                }
+            }
+            else
+            {
+                printf ("[%zu] = " STACK_ELEM "\n", i, stk->info_data[i]);
+            }
+        }
+    }
+    else
+    {
+        printf (" <data is NULL>\n");
+    }
+}
+
+void PrintfCanary (struct stack_t* stk)
+{
+    if (stk->data != NULL) // новую функцию
+    {
+        stack_elem_t left_canary  = stk->data[0];
+        stack_elem_t right_canary = stk->data[stk->capacity + 1];
+
+        if ( left_canary == CANARY_VALUE)
+        {
+            printf ("left  canary = " STACK_ELEM " %s\n", CANARY_VALUE, "<OK>"); 
+        }
+        else
+        {
+            printf ("left  canary = " STACK_ELEM " %s\n", CANARY_VALUE,"<BAD>"); 
+        }
+
+
+        if ( right_canary == CANARY_VALUE)
+        {
+            printf ("right  canary = " STACK_ELEM " %s\n", CANARY_VALUE,"<OK>"); 
+        }
+        else
+        {
+            printf ("right  canary = " STACK_ELEM " %s\n", CANARY_VALUE,"<BAD>"); 
+        }
+    }
 }
